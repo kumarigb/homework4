@@ -1,15 +1,3 @@
-"""
-Usage:
-    python3 -m homework.train_planner --your_args here
-"""
-
-"""
-Usage:
-    python3 -m homework.train_planner --your_args here
-"""
-
-
-
 import argparse
 from datetime import datetime
 from pathlib import Path
@@ -17,9 +5,8 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.utils.tensorboard as tb
-from models import MLPPlanner, save_model
-from datasets.road_dataset import RoadDataset
-from torch.utils.data import DataLoader
+from homework.models import MLPPlanner, save_model
+from homework.datasets.road_dataset import load_data
 
 def train(model_name: str, transform_pipeline: str, num_workers: int, lr: float, batch_size: int, num_epoch: int):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,11 +20,8 @@ def train(model_name: str, transform_pipeline: str, num_workers: int, lr: float,
     model = MLPPlanner()
     model = model.to(device)
 
-    train_dataset = RoadDataset("road_data/train", transform_pipeline=transform_pipeline)
-    val_dataset = RoadDataset("road_data/val", transform_pipeline=transform_pipeline)
-    
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    train_loader = load_data("drive_data/train", transform_pipeline=transform_pipeline, return_dataloader=True, num_workers=num_workers, batch_size=batch_size, shuffle=True)
+    val_loader = load_data("drive_data/val", transform_pipeline=transform_pipeline, return_dataloader=True, num_workers=num_workers, batch_size=batch_size, shuffle=False)
     
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -90,4 +74,3 @@ if __name__ == "__main__":
     parser.add_argument("--num_epoch", type=int, default=40)
     args = parser.parse_args()
     train(**vars(args))
-
