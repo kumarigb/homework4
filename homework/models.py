@@ -24,6 +24,11 @@ class MLPPlanner(nn.Module):
         self.n_track = n_track
         self.n_waypoints = n_waypoints
 
+        # Define the MLP layers 
+        self.fc1 = nn.Linear(n_track * 4, 128) # Input size is n_track * 4 (2 for left and 2 for right) 
+        self.fc2 = nn.Linear(128, 64) 
+        self.fc3 = nn.Linear(64, n_waypoints * 2) # Output size is n_waypoints * 2
+
     def forward(
         self,
         track_left: torch.Tensor,
@@ -43,7 +48,18 @@ class MLPPlanner(nn.Module):
         Returns:
             torch.Tensor: future waypoints with shape (b, n_waypoints, 2)
         """
-        raise NotImplementedError
+        # Flatten the input tensors 
+        x = torch.cat([track_left, track_right], dim=-1) # Shape: (b, n_track, 4) 
+        x = x.view(x.size(0), -1) # Shape: (b, n_track * 4) 
+        
+        # Pass through the MLP layers 
+        x = torch.relu(self.fc1(x)) 
+        x = torch.relu(self.fc2(x)) 
+        x = self.fc3(x) 
+        
+        # Reshape the output to (b, n_waypoints, 2) 
+        waypoints = x.view(x.size(0), self.n_waypoints, 2) 
+        return waypoints
 
 
 class TransformerPlanner(nn.Module):
