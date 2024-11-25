@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.utils.tensorboard as tb
-from homework.models import MLPPlanner, save_model
+from homework.models import MLPPlanner, TransformerPlanner, CNNPlanner, save_model
 from homework.datasets.road_dataset import load_data
 
 def train(model_name: str, transform_pipeline: str, num_workers: int, lr: float, batch_size: int, num_epoch: int):
@@ -17,7 +17,16 @@ def train(model_name: str, transform_pipeline: str, num_workers: int, lr: float,
     log_dir = Path("logs") / f"{model_name}_{datetime.now().strftime('%m%d_%H%M%S')}"
     logger = tb.SummaryWriter(log_dir)
     
-    model = MLPPlanner()
+    # Dynamically load the appropriate model 
+    if model_name == "mlp_planner": 
+        model = MLPPlanner() 
+    elif model_name == "transformer_planner": 
+        model = TransformerPlanner()
+    elif model_name == "cnn_planner": 
+        model = CNNPlanner() 
+    
+    else: raise ValueError(f"Unknown model name: {model_name}")
+
     model = model.to(device)
 
     train_loader = load_data("drive_data/train", transform_pipeline=transform_pipeline, return_dataloader=True, num_workers=num_workers, batch_size=batch_size, shuffle=True)
@@ -31,10 +40,16 @@ def train(model_name: str, transform_pipeline: str, num_workers: int, lr: float,
         model.train()
         train_loss = []
         for batch in train_loader:
-            track_left, track_right, waypoints, waypoints_mask = batch['track_left'].to(device), batch['track_right'].to(device), batch['waypoints'].to(device), batch['waypoints_mask'].to(device)
+            #track_left, track_right, waypoints, waypoints_mask = batch['track_left'].to(device), batch['track_right'].to(device), batch['waypoints'].to(device), batch['waypoints_mask'].to(device)
+            if model_name == "cnn_planner": 
+                image, waypoints, waypoints_mask = batch['image'].to(device), batch['waypoints'].to(device), batch['waypoints_mask'].to(device) 
+                pred_waypoints = model(image) 
+            else: 
+                track_left, track_right, waypoints, waypoints_mask = batch['track_left'].to(device), batch['track_right'].to(device), batch['waypoints'].to(device), batch['waypoints_mask'].to(device) 
+                pred_waypoints = model(track_left, track_right)
             
             optimizer.zero_grad()
-            pred_waypoints = model(track_left, track_right)
+            #pred_waypoints = model(track_left, track_right)
             loss = criterion(pred_waypoints, waypoints)
             loss.backward()
             optimizer.step()
@@ -72,5 +87,6 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=128)
     parser.add_argument("--num_epoch", type=int, default=40)
+    parser.add_argument("--d_model", type=int, default=64) # Add d_model for TransformerPlanner
     args = parser.parse_args()
     train(**vars(args))

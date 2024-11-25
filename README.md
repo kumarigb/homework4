@@ -170,3 +170,28 @@ Please double-check that your zip file was properly created by grading it again.
 python3 -m grader $YOUR_UT_ID.zip
 ```
 After verifying that the zip file grades successfully, you can submit it on Canvas.
+
+
+In Google collab to train your model 
+
+# Refreshes Python imports automatically when you edit the source file
+%load_ext autoreload
+%autoreload 2
+
+# Make sure you're in the right directory
+%pwd
+
+from homework.train_planner import train
+
+# Your training args don't have to look like this
+# This is just how it's structured in the solution
+for lr in [1e-2, 1e-3, 1e-4]:
+    train(
+        model_name="cnn_planner",  # Change to "mlp_planner" or "transformer_planner" as needed
+        transform_pipeline="default",  # Use "default" for CNNPlanner
+        num_workers=4,
+        lr=lr,
+        batch_size=128,
+        num_epoch=40,
+        d_model=64  # Only needed for TransformerPlanner
+    )
