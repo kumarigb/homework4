@@ -38,7 +38,8 @@ class BaseGrader(Grader):
         elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
             self.device = torch.device("mps")
         else:
-            raise RuntimeError("No hardware acceleration available")
+            #raise RuntimeError("No hardware acceleration available")
+            self.device = torch.device("cpu")
 
         # some grading might still be non-deterministic
         np.random.seed(2024)

@@ -73,8 +73,20 @@ class TransformerPlanner(nn.Module):
 
         self.n_track = n_track
         self.n_waypoints = n_waypoints
+        self.d_model = d_model
 
+        # Learned query embeddings for waypoints
         self.query_embed = nn.Embedding(n_waypoints, d_model)
+
+        # Linear layer to encode the input lane boundaries 
+        self.input_proj = nn.Linear(2, d_model) 
+        
+        # Transformer decoder layer 
+        self.decoder_layer = nn.TransformerDecoderLayer(d_model=d_model, nhead=8) 
+        self.transformer_decoder = nn.TransformerDecoder(self.decoder_layer, num_layers=6) 
+        
+        # Output projection to predict waypoints 
+        self.output_proj = nn.Linear(d_model, 2)
 
     def forward(
         self,
@@ -95,7 +107,27 @@ class TransformerPlanner(nn.Module):
         Returns:
             torch.Tensor: future waypoints with shape (b, n_waypoints, 2)
         """
-        raise NotImplementedError
+
+        # Concatenate left and right track boundaries 
+        track = torch.cat([track_left, track_right], dim=1) # Shape: (b, 2 * n_track, 2) 
+        
+        # Encode the input lane boundaries 
+        track_encoded = self.input_proj(track) # Shape: (b, 2 * n_track, d_model) 
+        
+        # Get the query embeddings for waypoints 
+        query_embed = self.query_embed.weight.unsqueeze(1).repeat(1, track.size(0), 1) # Shape: (n_waypoints, b, d_model) 
+        
+        # Apply the transformer decoder 
+        tgt = torch.zeros_like(query_embed) # Shape: (n_waypoints, b, d_model) 
+        memory = track_encoded.permute(1, 0, 2) # Shape: (2 * n_track, b, d_model) 
+        output = self.transformer_decoder(tgt, memory) # Shape: (n_waypoints, b, d_model) 
+        
+        # Project the output to predict waypoints 
+        waypoints = self.output_proj(output.permute(1, 0, 2)) # Shape: (b, n_waypoints, 2) 
+        return waypoints
+        #raise NotImplementedError
+    
+
 
 
 class CNNPlanner(torch.nn.Module):
@@ -143,6 +175,8 @@ def load_model(
 
     if with_weights:
         model_path = HOMEWORK_DIR / f"{model_name}.th"
+        print("Hello")
+        print(model_path)
         assert model_path.exists(), f"{model_path.name} not found"
 
         try:
