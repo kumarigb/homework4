@@ -63,9 +63,14 @@ def train(model_name: str, transform_pipeline: str, num_workers: int, lr: float,
         val_loss = []
         with torch.no_grad():
             for batch in val_loader:
-                track_left, track_right, waypoints, waypoints_mask = batch['track_left'].to(device), batch['track_right'].to(device), batch['waypoints'].to(device), batch['waypoints_mask'].to(device)
-                pred_waypoints = model(track_left, track_right)
-                loss = criterion(pred_waypoints, waypoints)
+                if model_name == "cnn_planner": 
+                  image, waypoints, waypoints_mask = batch['image'].to(device), batch['waypoints'].to(device), batch['waypoints_mask'].to(device) 
+                  pred_waypoints = model(image) 
+                else: 
+                  track_left, track_right, waypoints, waypoints_mask = batch['track_left'].to(device), batch['track_right'].to(device), batch['waypoints'].to(device), batch['waypoints_mask'].to(device) 
+                  pred_waypoints = model(track_left, track_right) 
+                
+                loss = criterion(pred_waypoints, waypoints) 
                 val_loss.append(loss.item())
 
         epoch_val_loss = np.mean(val_loss)

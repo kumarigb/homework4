@@ -140,14 +140,22 @@ class CNNPlanner(torch.nn.Module):
         self.register_buffer("input_std", torch.as_tensor(INPUT_STD), persistent=False)
 
         # Define the CNN layers 
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1) 
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1) 
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1) 
-        self.conv4 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1) 
+        #self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1) 
+        #self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1) 
+        #self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1) 
+        #self.conv4 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1) 
+        # Define the CNN layers with reduced filters 
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=2, padding=1) 
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1) 
+        self.conv3 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1) 
+        
+        # Define the fully connected layers with reduced size 
+        self.fc1 = nn.Linear(64 * 12 * 16, 256) 
+        self.fc2 = nn.Linear(256, n_waypoints * 2)
         
         # Define the fully connected layers 
-        self.fc1 = nn.Linear(256 * 6 * 8, 512) 
-        self.fc2 = nn.Linear(512, n_waypoints * 2)
+        #self.fc1 = nn.Linear(256 * 6 * 8, 512) 
+        #self.fc2 = nn.Linear(512, n_waypoints * 2)
 
     def forward(self, image: torch.Tensor, **kwargs) -> torch.Tensor:
         """
@@ -164,7 +172,7 @@ class CNNPlanner(torch.nn.Module):
         x = torch.relu(self.conv1(x)) 
         x = torch.relu(self.conv2(x)) 
         x = torch.relu(self.conv3(x)) 
-        x = torch.relu(self.conv4(x))
+       # x = torch.relu(self.conv4(x))
         
         # Flatten the tensor 
         x = x.view(x.size(0), -1) 
@@ -222,7 +230,8 @@ def save_model(model: torch.nn.Module) -> str:
     """
     Use this function to save your model in train.py
     """
-    model_name = None
+    #model_name = None
+    model_name = type(model).__name__
 
     for n, m in MODEL_FACTORY.items():
         if type(model) is m:
